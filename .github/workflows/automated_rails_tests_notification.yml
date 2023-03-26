@@ -1,0 +1,45 @@
+name: Automated ruby tests run
+run-name: Automated ruby tests
+on: pull_request
+jobs:
+  ruby-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:11.6
+        ports: [ "5432:5432" ]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@359bebbc29cbe6c87da6bc9ea3bc930432750108
+
+      - name: Install PostgreSQL
+        run: sudo apt-get -yqq install libpq-dev
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Setup Database
+        env:
+          RAILS_ENV: test
+          PGHOST: localhost
+          PGUSER: postgres
+        run: bin/rails db:create db:schema:load
+
+      - name: Build and test with rspec
+          env:
+            RAILS_ENV: test
+            PGHOST: localhost
+            PGUSER: postgres
+          run: bundle exec rspec spec
+
+      - name: Send http request for automated tests
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: 'https://www.codelix.co.uk/api/notify_automated_tests_successful'
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"repo_url": "${{ github.repositoryUrl }}", "pr_number": "${{ github.event.number }}", "opened_by_github_username": "${{ github.actor }}"}'
