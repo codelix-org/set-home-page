@@ -1,5 +1,5 @@
-name: Automated ruby tests run
-run-name: Automated ruby tests
+name: Automated rails tests run
+run-name: Automated rails tests
 on: pull_request
 jobs:
   ruby-tests:
